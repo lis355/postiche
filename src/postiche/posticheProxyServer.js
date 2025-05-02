@@ -68,6 +68,7 @@ class PosticheProxyServer {
 
 		this.server.listen(this.port, () => {
 			console.log(`PosticheProxyServer started at ${this.port}`);
+			console.log(`PosticheProxyServer fake tls frames from ${config.url}`);
 		});
 	}
 
@@ -128,6 +129,7 @@ export function createPosticheLocalSocksProxyServer(localSocksProxyPort, postich
 	socksServer.listen(localSocksProxyPort, () => {
 		console.log("PosticheLocalSocksProxyServer listening on", localSocksProxyPort);
 		console.log("PosticheLocalSocksProxyServer will connect with PosticheProxyServer on", posticheProxyHost, posticheProxyPort);
+		console.log(`PosticheLocalSocksProxyServer fake tls frames from ${config.url}`);
 	});
 
 	return socksServer;
