@@ -3,27 +3,6 @@
 
 // import { createDebugPassThroghStream } from "./utils.js";
 
-// export function createServer(port) {
-// 	var srv = socks.createServer(function (info, accept, deny) {
-// 		function resumeWithTargetSocket(targetSocket) {
-// 			const clientSocket = accept(true);
-
-// 			clientSocket
-// 				.pipe(createDebugPassThroghStream(`${info.srcAddr}:${info.srcPort} -> ${info.dstAddr}:${info.dstPort}`))
-// 				.pipe(targetSocket);
-
-// 			targetSocket
-// 				.pipe(createDebugPassThroghStream(`${info.dstAddr}:${info.dstPort} -> ${info.srcAddr}:${info.srcPort}`))
-// 				.pipe(clientSocket);
-// 		}
-
-// 		// without proxy direct conection
-// 		// const targetSocket = net.createConnection({ host: info.dstAddr, port: info.dstPort });
-// 		// targetSocket.once("connect", () => {
-// 		// 	resumeWithTargetSocket(targetSocket);
-// 		// });
-
-// 		// with proxy
 // 		SocksClient.createConnection({
 // 			proxy: {
 // 				host: "localhost",
@@ -47,18 +26,7 @@
 // 				// Handle errors
 // 			}
 // 		});
-// 	});
 
-// 	srv.useAuth(socks.auth.None());
-
-// 	srv.listen(port, "localhost", function () {
-// 		console.log("SOCKS server listening on ", port);
-// 	});
-// }
-
-
-
-// (async () => {
 // 	async function getHTTPProxySocket({ proxyUsername = null, proxyPassword = null, proxyHost, proxyPort, targetHost, targetPort = 80 }) {
 // 		return new Promise((resolve, reject) => {
 // 			const headers = {};

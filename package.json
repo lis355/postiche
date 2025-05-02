@@ -5,10 +5,11 @@
 	"main": "index.js",
 	"dependencies": {
 		"dotenv-flow": "^4.1.0",
-		"socks-proxy-agent": "^8.0.5",
 		"socksv5": "^0.0.6"
 	},
 	"devDependencies": {
-		"eslint": "^9.25.1"
+		"eslint": "^9.25.1",
+		"http-proxy-agent": "^7.0.2",
+		"socks-proxy-agent": "^8.0.5"
 	}
 }
