@@ -4,6 +4,7 @@ import net from "node:net";
 import socks from "socksv5";
 
 import { createPosticheProxyClientSocket } from "./posticheProxyClient.js";
+import { waitForStreamData } from "../utils.js";
 import config from "./posticheProxyConfig.js";
 
 function createDebugPassThroghStream({ name, logData = false }) {
@@ -19,34 +20,63 @@ function createDebugPassThroghStream({ name, logData = false }) {
 	});
 }
 
-async function waitForStreamData(readableStream, size = undefined) {
-	return new Promise((resolve, reject) => {
-		readableStream.once("close", reject);
+function createSimpleCryptTransform() {
+	return new Transform({
+		transform(chunk, encoding, callback) {
+			const buffer = Buffer.allocUnsafe(chunk.byteLength);
+			for (let i = 0; i < chunk.byteLength; i++) buffer[i] = chunk[i] ^ 0b10101010;
 
-		readableStream.once("readable", () => {
-			readableStream.off("close", reject);
-
-			return resolve(readableStream.read(size));
-		});
+			callback(null, buffer);
+		}
 	});
 }
 
-export function createPosticheProxyServer(port) {
-	const server = net.createServer(async clientSocket => {
-		clientSocket.pause();
+class PosticheProxyServer {
+	constructor(port) {
+		this.port = port;
 
-		console.log(`PosticheProxyServer client ${clientSocket.remoteAddress}:${clientSocket.remotePort} connected`);
+		this.server = net.createServer(async clientSocket => {
+			clientSocket.pause();
 
-		clientSocket.on("close", () => {
-			console.log(`PosticheProxyServer client ${clientSocket.remoteAddress}:${clientSocket.remotePort} disconnected`);
+			console.log(`PosticheProxyServer client ${clientSocket.remoteAddress}:${clientSocket.remotePort} connected`);
+
+			clientSocket.on("close", () => {
+				console.log(`PosticheProxyServer client ${clientSocket.remoteAddress}:${clientSocket.remotePort} disconnected`);
+			});
+
+			await this.readFakeTlsFrame(clientSocket);
+
+			const { host, port } = await this.readHeader(clientSocket);
+
+			const destinationSocket = net.createConnection({ host, port });
+			destinationSocket.once("connect", () => {
+				this.writeFakeTlsFrame(clientSocket);
+
+				clientSocket
+					// .pipe(createDebugPassThroghStream({ name: "SERVER C -> S", logData: false }))
+					.pipe(createSimpleCryptTransform())
+					.pipe(destinationSocket);
+
+				destinationSocket
+					// .pipe(createDebugPassThroghStream({ name: "SERVER S -> C", logData: false }))
+					.pipe(createSimpleCryptTransform())
+					.pipe(clientSocket);
+
+				clientSocket.resume();
+			});
 		});
 
-		// skip first fake tls frame from captured https request (client hello)
-		const firstFakeTlsFrameLength = config.getTlsOutFrame(0).byteLength;
-		await waitForStreamData(clientSocket, firstFakeTlsFrameLength);
+		this.server.listen(this.port, () => {
+			console.log(`PosticheProxyServer started at ${this.port}`);
+		});
+	}
 
-		console.log(`PosticheProxyServer client ${clientSocket.remoteAddress}:${clientSocket.remotePort} skipped first fake tls frame with ${firstFakeTlsFrameLength} Bytes`);
+	writeFakeTlsFrame(clientSocket) {
+		// send fake tls first frame from captured https request (server hello)
+		clientSocket.write(config.getTlsInFrame(0));
+	}
 
+	async readHeader(clientSocket) {
 		let buffer = await waitForStreamData(clientSocket, 4);
 		const destinationHostBufferLength = buffer.readInt32BE(0);
 
@@ -58,25 +88,22 @@ export function createPosticheProxyServer(port) {
 
 		console.log(`PosticheProxyServer client ${clientSocket.remoteAddress}:${clientSocket.remotePort} want connect to ${host}:${port}`);
 
-		const destinationSocket = net.createConnection({ host, port });
-		destinationSocket.once("connect", () => {
-			clientSocket
-				// .pipe(createDebugPassThroghStream({ name: "clientSocket -> destinationSocket", logData: true }))
-				.pipe(destinationSocket);
+		return { host, port };
+	}
 
-			destinationSocket
-				// .pipe(createDebugPassThroghStream({ name: "destinationSocket -> clientSocket", logData: true }))
-				.pipe(clientSocket);
+	async readFakeTlsFrame(clientSocket) {
+		// skip first fake tls frame from captured https request (client hello)
+		const firstFakeTlsFrameLength = config.getTlsOutFrame(0).byteLength;
+		await waitForStreamData(clientSocket, firstFakeTlsFrameLength);
 
-			clientSocket.resume();
-		});
-	});
+		console.log(`PosticheProxyServer client ${clientSocket.remoteAddress}:${clientSocket.remotePort} skipped first fake tls frame with ${firstFakeTlsFrameLength} Bytes`);
+	}
+}
 
-	server.listen(port, () => {
-		console.log(`PosticheProxyServer started at ${port}`);
-	});
+export function createPosticheProxyServer(port) {
+	const posticheProxyServer = new PosticheProxyServer(port);
 
-	return server;
+	return posticheProxyServer.server;
 }
 
 export function createPosticheLocalSocksProxyServer(localSocksProxyPort, posticheProxyHost, posticheProxyPort) {
@@ -84,8 +111,15 @@ export function createPosticheLocalSocksProxyServer(localSocksProxyPort, postich
 		createPosticheProxyClientSocket(posticheProxyHost, posticheProxyPort, info.dstAddr, info.dstPort, posticheProxyClientSocket => {
 			const clientSocket = accept(true);
 
-			clientSocket.pipe(posticheProxyClientSocket);
-			posticheProxyClientSocket.pipe(clientSocket);
+			clientSocket
+				// .pipe(createDebugPassThroghStream({ name: "CLIENT C -> S", logData: false }))
+				.pipe(createSimpleCryptTransform())
+				.pipe(posticheProxyClientSocket);
+
+			posticheProxyClientSocket
+				// .pipe(createDebugPassThroghStream({ name: "CLIENT S -> C", logData: false }))
+				.pipe(createSimpleCryptTransform())
+				.pipe(clientSocket);
 		});
 	});
 
