@@ -35,17 +35,17 @@ export function createPosticheProxyServer(port) {
 	const server = net.createServer(async clientSocket => {
 		clientSocket.pause();
 
-		console.log(`PosticheProxyServer client connected ${clientSocket.remoteAddress}:${clientSocket.remotePort}`);
+		console.log(`PosticheProxyServer client ${clientSocket.remoteAddress}:${clientSocket.remotePort} connected`);
 
 		clientSocket.on("close", () => {
-			console.log(`PosticheProxyServer client disconnected ${clientSocket.remoteAddress}:${clientSocket.remotePort}`);
+			console.log(`PosticheProxyServer client ${clientSocket.remoteAddress}:${clientSocket.remotePort} disconnected`);
 		});
 
 		// skip first fake tls frame from captured https request (client hello)
 		const firstFakeTlsFrameLength = config.getTlsOutFrame(0).byteLength;
 		await waitForStreamData(clientSocket, firstFakeTlsFrameLength);
 
-		console.log(`PosticheProxyServer client connected ${clientSocket.remoteAddress}:${clientSocket.remotePort} skipped first fake tls frame with ${firstFakeTlsFrameLength} Bytes`);
+		console.log(`PosticheProxyServer client ${clientSocket.remoteAddress}:${clientSocket.remotePort} skipped first fake tls frame with ${firstFakeTlsFrameLength} Bytes`);
 
 		let buffer = await waitForStreamData(clientSocket, 4);
 		const destinationHostBufferLength = buffer.readInt32BE(0);
