@@ -28,5 +28,9 @@ export async function createPosticheProxyClientSocket(serverHost, serverPort, de
 
 	destinationSocket.uncork();
 
-	destinationSocket.once("connect", () => callback(destinationSocket));
+	destinationSocket.once("connect", () => {
+		console.log(`PosticheProxyClientSocket connected to server ${destinationSocket.remoteAddress}:${destinationSocket.remotePort}`);
+
+		return callback(destinationSocket);
+	});
 }

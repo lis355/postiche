@@ -93,6 +93,7 @@ export function createPosticheLocalSocksProxyServer(localSocksProxyPort, postich
 
 	socksServer.listen(localSocksProxyPort, () => {
 		console.log("PosticheLocalSocksProxyServer listening on", localSocksProxyPort);
+		console.log("PosticheLocalSocksProxyServer will connect with PosticheProxyServer on", posticheProxyHost, posticheProxyPort);
 	});
 
 	return socksServer;

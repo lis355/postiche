@@ -11,11 +11,9 @@ import socks from "socksv5";
 
 dotenv();
 
-const config = {
-	tlsFrames: {
-		out: [],
-		in: []
-	}
+const tlsFrames = {
+	out: [],
+	in: []
 };
 
 function createLocalSocksProxyServer(localSocksProxyPort) {
@@ -57,7 +55,6 @@ function createLocalSocksProxyServer(localSocksProxyPort) {
 	return localSocksServer;
 }
 
-
 async function httpsGetRequest(localServerPort, url) {
 	return new Promise((resolve, reject) => {
 		https.get(
@@ -77,19 +74,27 @@ async function httpsGetRequest(localServerPort, url) {
 }
 
 (async () => {
-	const url = "https://telegram.org";
-	const localSocksServerPort = 1090;
-
+	const localSocksServerPort = Number(process.env.TEST_LOCAL_SOCK_PROXY_SERVER_PORT);
 	const localSocksServer = createLocalSocksProxyServer(localSocksServerPort);
 
+	const url = process.env.RECORD_TLS_REQUEST_URL;
 	console.log("GET", url);
+
 	const responseBuffer = await httpsGetRequest(localSocksServerPort, url);
 	console.log("responseBuffer length", responseBuffer.toString().length, "Bytes");
 
 	localSocksServer.close();
 
-	config.url = url;
+	const config = {
+		localSocksServerPort,
+		posticheProxyServerHost: "",
+		posticheProxyServerPort: 0,
+		url,
+		tlsFrames
+	};
 
-	const configFilePath = path.resolve(".posticheConfig", "cfg.json");
-	fs.writeFileSync(configFilePath, JSON.stringify(config));
+	const configFilePath = path.resolve("postiche.config.json");
+	console.log("Write config at", configFilePath);
+
+	fs.writeFileSync(configFilePath, JSON.stringify(config, null, "\t"));
 })();

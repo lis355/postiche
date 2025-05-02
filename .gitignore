@@ -4,4 +4,4 @@ node_modules/
 
 .env.*
 
-.posticheConfig/
+postiche.config.json

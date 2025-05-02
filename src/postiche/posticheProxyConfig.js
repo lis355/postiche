@@ -3,28 +3,33 @@ import path from "node:path";
 
 class PosticheProxyConfig {
 	constructor(obj) {
-		this.obj = obj;
+		for (const [name, value] of Object.entries(obj)) this[name] = value;
 
-		this.obj.tlsFrames.out = this.obj.tlsFrames.out.map(s => Buffer.from(s, "base64"));
-		this.obj.tlsFrames.in = this.obj.tlsFrames.in.map(s => Buffer.from(s, "base64"));
-	}
-
-	get url() {
-		return this.obj.url;
+		this.tlsFrames.out = this.tlsFrames.out.map(s => Buffer.from(s, "base64"));
+		this.tlsFrames.in = this.tlsFrames.in.map(s => Buffer.from(s, "base64"));
 	}
 
 	getTlsOutFrame(number) {
-		return this.obj.tlsFrames.out[number];
+		return this.tlsFrames.out[number];
 	}
 
 	getTlsInFrame(number) {
-		return this.obj.tlsFrames.in[number];
+		return this.tlsFrames.in[number];
 	}
 }
 
-const configFilePath = path.resolve(".posticheConfig", "cfg.json");
-const obj = JSON.parse(fs.readFileSync(configFilePath));
+const configFilePath = path.resolve("postiche.config.json");
+if (!fs.existsSync(configFilePath)) throw new Error(`No config file at ${configFilePath}`);
 
-const config = new PosticheProxyConfig(obj);
+let config;
+try {
+	const obj = JSON.parse(fs.readFileSync(configFilePath));
+
+	config = new PosticheProxyConfig(obj);
+
+	console.log(`PosticheProxyConfig loaded at ${configFilePath}`);
+} catch (error) {
+	throw new Error(`Bad config at ${configFilePath} (${error.message})`);
+}
 
 export default config;
