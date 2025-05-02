@@ -9,7 +9,7 @@
 	},
 	"devDependencies": {
 		"eslint": "^9.25.1",
-		"http-proxy-agent": "^7.0.2",
+		"https-proxy-agent": "^7.0.6",
 		"socks-proxy-agent": "^8.0.5"
 	}
 }

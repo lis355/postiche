@@ -2,14 +2,14 @@ import { Transform } from "node:stream";
 import fs from "node:fs";
 import http from "node:http";
 import net from "node:net";
-import path, { resolve } from "node:path";
+import path from "node:path";
 
 import { config as dotenv } from "dotenv-flow";
-import { HttpProxyAgent } from "http-proxy-agent";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import { SocksProxyAgent } from "socks-proxy-agent";
 import socks from "socksv5";
 
-import { httpsGetRequest } from "../utils.js";
+import { getHttpRawResponseString, httpsGetRequest } from "../utils.js";
 
 dotenv();
 
@@ -24,27 +24,7 @@ function createLocalSocksProxyServer(localSocksProxyPort) {
 		destinationSocket.once("connect", () => {
 			const clientSocket = accept(true);
 
-			clientSocket
-				.pipe(new Transform({
-					transform(chunk, encoding, callback) {
-						tlsFrames.out.push(chunk.toString("base64"));
-
-						callback(null, chunk);
-					}
-				}))
-				.pipe(destinationSocket);
-
-			destinationSocket
-				.pipe(new Transform({
-					transform(chunk, encoding, callback) {
-						tlsFrames.in.push(chunk.toString("base64"));
-
-						callback(null, chunk);
-					}
-				}))
-				.pipe(clientSocket);
-
-			clientSocket.resume();
+			handleProxySockets(clientSocket, destinationSocket);
 		});
 	});
 
@@ -61,31 +41,12 @@ function createLocalHttpProxyServer(localHttpProxyPort) {
 	const localHttpServer = http.createServer();
 
 	localHttpServer.on("connect", (request, clientSocket, head) => {
-		clientSocket.pause();
-
-		const destinationSocket = net.createConnection({ host: info.dstAddr, port: info.dstPort });
+		const destinationUrl = request.url.split(":");
+		const destinationSocket = net.createConnection({ host: destinationUrl[0], port: Number(destinationUrl[1]) });
 		destinationSocket.once("connect", () => {
-			clientSocket
-				.pipe(new Transform({
-					transform(chunk, encoding, callback) {
-						tlsFrames.out.push(chunk.toString("base64"));
-
-						callback(null, chunk);
-					}
-				}))
-				.pipe(destinationSocket);
-
-			destinationSocket
-				.pipe(new Transform({
-					transform(chunk, encoding, callback) {
-						tlsFrames.in.push(chunk.toString("base64"));
-
-						callback(null, chunk);
-					}
-				}))
-				.pipe(clientSocket);
-
-			clientSocket.resume();
+			clientSocket.write(getHttpRawResponseString(request, 200), () => {
+				handleProxySockets(clientSocket, destinationSocket);
+			});
 		});
 	});
 
@@ -96,9 +57,31 @@ function createLocalHttpProxyServer(localHttpProxyPort) {
 	return localHttpServer;
 }
 
+function handleProxySockets(clientSocket, destinationSocket) {
+	clientSocket
+		.pipe(new Transform({
+			transform(chunk, encoding, callback) {
+				tlsFrames.out.push(chunk.toString("base64"));
+
+				callback(null, chunk);
+			}
+		}))
+		.pipe(destinationSocket);
+
+	destinationSocket
+		.pipe(new Transform({
+			transform(chunk, encoding, callback) {
+				tlsFrames.in.push(chunk.toString("base64"));
+
+				callback(null, chunk);
+			}
+		}))
+		.pipe(clientSocket);
+}
+
 (async () => {
-	const localProxyServerPort = Number(process.env.LOCAL_PROXY_SERVER_PORT);
 	const localProxyServerProtocol = process.env.LOCAL_PROXY_SERVER_PROTOCOL;
+	const localProxyServerPort = Number(process.env.LOCAL_PROXY_SERVER_PORT);
 	const localProxyServerUrl = `${localProxyServerProtocol}://localhost:${localProxyServerPort}`;
 	let localProxyServer;
 	let proxyAgent;
@@ -107,7 +90,7 @@ function createLocalHttpProxyServer(localHttpProxyPort) {
 		proxyAgent = new SocksProxyAgent(localProxyServerUrl);
 	} else if (localProxyServerProtocol === "http") {
 		localProxyServer = createLocalHttpProxyServer(localProxyServerPort);
-		proxyAgent = new HttpProxyAgent(localProxyServerUrl);
+		proxyAgent = new HttpsProxyAgent(localProxyServerUrl);
 	} else throw new Error(`Bad local proxy server protocol ${localProxyServerProtocol}`);
 
 	console.log(proxyAgent.constructor.name, "proxy to", localProxyServerUrl);
@@ -115,37 +98,10 @@ function createLocalHttpProxyServer(localHttpProxyPort) {
 	const url = process.env.RECORD_TLS_REQUEST_URL;
 	console.log("GET", url);
 
-	///////
-	const request = http.request({
-		host: "localhost",
-		port: localProxyServerPort,
-		// headers,
-		method: "CONNECT",
-		path: "google.com"
-	});
-
-	request.once("connect", (response, socket, head) => {
-		// console.log(response.statusCode, response.statusMessage);
-
-		if (response.statusCode === 200) return resolve(socket);
-
-		return reject(new Error(`${response.statusCode} ${response.statusMessage}`));
-
-		// socket.on("end", () => {
-		// 	// proxy.close();
-		// });
-	});
-
-	request.end();
-	///////
-
 	const responseBuffer = await httpsGetRequest(url, proxyAgent);
 	const responseBufferString = responseBuffer.toString();
 
-	console.log("responseBuffer length", responseBufferString.length, "Bytes");
-	console.log("...");
-	console.log(responseBufferString.substring(0, 50));
-	console.log("...");
+	console.log("responseBuffer length", responseBufferString.length, "Bytes", responseBufferString.substring(0, 15));
 
 	localProxyServer.close();
 

@@ -11,6 +11,7 @@
 			"skipFiles": [
 				"<node_internals>/**"
 			],
+			"console": "integratedTerminal",
 			"type": "node"
 		},
 		{
@@ -20,6 +21,7 @@
 			"skipFiles": [
 				"<node_internals>/**"
 			],
+			"console": "integratedTerminal",
 			"type": "node"
 		},
 		{
@@ -29,6 +31,7 @@
 			"skipFiles": [
 				"<node_internals>/**"
 			],
+			"console": "integratedTerminal",
 			"type": "node"
 		},
 		{
@@ -38,6 +41,7 @@
 			"skipFiles": [
 				"<node_internals>/**"
 			],
+			"console": "integratedTerminal",
 			"type": "node"
 		},
 		{
@@ -47,6 +51,7 @@
 			"skipFiles": [
 				"<node_internals>/**"
 			],
+			"console": "integratedTerminal",
 			"type": "node"
 		}
 	]

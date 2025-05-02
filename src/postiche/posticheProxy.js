@@ -4,7 +4,7 @@ import net from "node:net";
 
 import socks from "socksv5";
 
-import { waitForStreamData } from "../utils.js";
+import { waitForStreamData, getHttpRawResponseString } from "../utils.js";
 import config from "./posticheProxyConfig.js";
 
 function createDebugPassThroghStream({ name }) {
@@ -20,13 +20,17 @@ function createDebugPassThroghStream({ name }) {
 	});
 }
 
-function createSimpleCryptTransform() {
+function encryptBufferByEveryByteXorEncryption(buffer, salt = 0b10101010) {
+	const encryptedBuffer = Buffer.allocUnsafe(chunk.byteLength);
+	for (let i = 0; i < chunk.byteLength; i++) encryptedBuffer[i] = buffer[i] ^ salt;
+
+	return encryptedBuffer;
+}
+
+function createEveryByteXorEncryptionTransform() {
 	return new Transform({
 		transform(chunk, encoding, callback) {
-			const buffer = Buffer.allocUnsafe(chunk.byteLength);
-			for (let i = 0; i < chunk.byteLength; i++) buffer[i] = chunk[i] ^ 0b10101010;
-
-			callback(null, buffer);
+			callback(null, encryptBufferByEveryByteXorEncryption(chunk));
 		}
 	});
 }
@@ -54,12 +58,12 @@ class PosticheProxyServer {
 
 				clientSocket
 					// .pipe(createDebugPassThroghStream({ name: "SERVER C -> S" }))
-					.pipe(createSimpleCryptTransform())
+					.pipe(createEveryByteXorEncryptionTransform())
 					.pipe(destinationSocket);
 
 				destinationSocket
 					// .pipe(createDebugPassThroghStream({ name: "SERVER S -> C" }))
-					.pipe(createSimpleCryptTransform())
+					.pipe(createEveryByteXorEncryptionTransform())
 					.pipe(clientSocket);
 
 				clientSocket.resume();
@@ -169,12 +173,12 @@ export function createPosticheLocalSocksProxyServer(localSocksProxyPort, postich
 
 			clientSocket
 				// .pipe(createDebugPassThroghStream({ name: "CLIENT C -> S" }))
-				.pipe(createSimpleCryptTransform())
+				.pipe(createEveryByteXorEncryptionTransform())
 				.pipe(posticheProxyClientSocket);
 
 			posticheProxyClientSocket
 				// .pipe(createDebugPassThroghStream({ name: "CLIENT S -> C" }))
-				.pipe(createSimpleCryptTransform())
+				.pipe(createEveryByteXorEncryptionTransform())
 				.pipe(clientSocket);
 		});
 	});
@@ -196,18 +200,21 @@ export function createPosticheLocalHttpProxyServer(localHttpProxyPort, posticheP
 	httpServer.on("connect", (request, clientSocket, head) => {
 		clientSocket.pause();
 
-		createPosticheProxyClientSocket(posticheProxyHost, posticheProxyPort, info.dstAddr, info.dstPort, posticheProxyClientSocket => {
-			clientSocket
-				// .pipe(createDebugPassThroghStream({ name: "CLIENT C -> S" }))
-				.pipe(createSimpleCryptTransform())
-				.pipe(posticheProxyClientSocket);
+		const destinationUrl = request.url.split(":");
+		createPosticheProxyClientSocket(posticheProxyHost, posticheProxyPort, destinationUrl[0], Number(destinationUrl[1]), posticheProxyClientSocket => {
+			clientSocket.write(getHttpRawResponseString(request, 200), () => {
+				clientSocket
+					// .pipe(createDebugPassThroghStream({ name: "CLIENT C -> S" }))
+					.pipe(createEveryByteXorEncryptionTransform())
+					.pipe(posticheProxyClientSocket);
 
-			posticheProxyClientSocket
-				// .pipe(createDebugPassThroghStream({ name: "CLIENT S -> C" }))
-				.pipe(createSimpleCryptTransform())
-				.pipe(clientSocket);
+				posticheProxyClientSocket
+					// .pipe(createDebugPassThroghStream({ name: "CLIENT S -> C" }))
+					.pipe(createEveryByteXorEncryptionTransform())
+					.pipe(clientSocket);
 
-			clientSocket.resume();
+				clientSocket.resume();
+			});
 		});
 	});
 

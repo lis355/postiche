@@ -1,4 +1,5 @@
 import { buffer } from "node:stream/consumers";
+import http from "node:http";
 import https from "node:https";
 
 export async function waitForStreamData(readableStream, size = undefined) {
@@ -11,6 +12,10 @@ export async function waitForStreamData(readableStream, size = undefined) {
 			return resolve(readableStream.read(size));
 		});
 	});
+}
+
+export function getHttpRawResponseString(request, statusCode) {
+	return `HTTP/${request.httpVersion} ${statusCode} ${http.STATUS_CODES[statusCode]}\r\n\r\n`;
 }
 
 export async function httpsGetRequest(url, agent) {

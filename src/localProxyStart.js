@@ -19,7 +19,9 @@ dotenv();
 		localProxyServer = createPosticheLocalHttpProxyServer(localProxyServerPort, posticheProxyServerHost, posticheProxyServerPort);
 	} else throw new Error(`Bad local proxy server protocol ${localProxyServerProtocol}`);
 
+	console.log("PosticheLocalProxyServer using protocol", localProxyServerProtocol.toUpperCase());
+
 	await new Promise(resolve => localProxyServer.once("listening", resolve));
 
-	console.log(`PosticheLocalSocksProxyServer started at ${localProxyServerUrl}`);
+	console.log("PosticheLocalProxyServer started at", localProxyServerUrl);
 })();
