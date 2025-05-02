@@ -1,26 +1,42 @@
-import { text } from "node:stream/consumers";
+import { buffer } from "node:stream/consumers";
 import https from "https";
 
+import { config as dotenv } from "dotenv-flow";
 import { SocksProxyAgent } from "socks-proxy-agent";
 
-export async function testHttpsGetRequest(localServerPort, url) {
-	return new Promise((resolve, reject) => {
+import { createPosticheLocalSocksProxyServer, createPosticheProxyServer } from "../postiche/posticheProxyServer.js";
 
+dotenv();
+
+async function testHttpsGetRequest(localServerPort, url) {
+	return new Promise((resolve, reject) => {
 		https.get(
 			url,
 			{
-				agent: new SocksProxyAgent(
-					`socks://localhost:${localServerPort}`
-				)
+				agent: new SocksProxyAgent(`socks://localhost:${localServerPort}`)
 			},
 			async response => {
-				console.log(response.statusCode, response.statusMessage, await text(response));
+				const responseBuffer = await buffer(response);
 
-				return resolve();
+				console.log(response.statusCode, response.statusMessage);
+
+				return resolve(responseBuffer);
 			}
 		);
 	});
 }
+
+(async () => {
+	const server = createPosticheProxyServer(Number(process.env.POSTICHE_PROXY_SERVER_PORT));
+	const posticheServer = createPosticheLocalSocksProxyServer(1090, process.env.POSTICHE_PROXY_SERVER_HOST, Number(process.env.POSTICHE_PROXY_SERVER_PORT));
+
+	// for test ip
+	const responseBuffer = await testHttpsGetRequest(1090, "https://echo.free.beeceptor.com");
+	console.log(JSON.parse(responseBuffer).ip);
+
+	posticheServer.close();
+	server.close();
+})();
 
 // (async () => {
 // 	async function getHTTPProxySocket({ proxyUsername = null, proxyPassword = null, proxyHost, proxyPort, targetHost, targetPort = 80 }) {

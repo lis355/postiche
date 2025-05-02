@@ -1,6 +1,6 @@
 import { config as dotenv } from "dotenv-flow";
 
-import { createPosticheProxyServer } from "./src/posticheProxyServer.js";
+import { createPosticheProxyServer } from "./postiche/posticheProxyServer.js";
 
 dotenv();
 

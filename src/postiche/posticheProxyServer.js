@@ -1,9 +1,22 @@
+import { Transform } from "node:stream";
 import net from "node:net";
 
 import socks from "socksv5";
 
 import { createPosticheProxyClientSocket } from "./posticheProxyClient.js";
-import { createDebugPassThroghStream } from "./utils.js";
+
+function createDebugPassThroghStream({ name, logData = false }) {
+	return new Transform({
+		transform(chunk, encoding, callback) {
+			console.log(name, chunk.length, "B");
+			// console.log(name, (chunk.length / 1024).toFixed(2), "Kb");
+
+			if (logData) console.log(Array.from(chunk).map(b => b.toString(16).toUpperCase().padStart(2, "0")).join(" "));
+
+			callback(null, chunk);
+		}
+	});
+}
 
 async function waitForStreamData(readableStream, size = undefined) {
 	return new Promise((resolve, reject) => {
@@ -41,11 +54,11 @@ export function createPosticheProxyServer(port) {
 		const destinationSocket = net.createConnection({ host, port });
 		destinationSocket.once("connect", () => {
 			clientSocket
-				.pipe(createDebugPassThroghStream({ name: "clientSocket -> destinationSocket" }))
+				// .pipe(createDebugPassThroghStream({ name: "clientSocket -> destinationSocket", logData: true }))
 				.pipe(destinationSocket);
 
 			destinationSocket
-				.pipe(createDebugPassThroghStream({ name: "destinationSocket -> clientSocket" }))
+				// .pipe(createDebugPassThroghStream({ name: "destinationSocket -> clientSocket", logData: true }))
 				.pipe(clientSocket);
 
 			clientSocket.resume();
@@ -60,7 +73,7 @@ export function createPosticheProxyServer(port) {
 }
 
 export function createPosticheLocalSocksProxyServer(localSocksProxyPort, posticheProxyHost, posticheProxyPort) {
-	const socksServer = socks.createServer(function (info, accept, deny) {
+	const socksServer = socks.createServer((info, accept, deny) => {
 		createPosticheProxyClientSocket(posticheProxyHost, posticheProxyPort, info.dstAddr, info.dstPort, posticheProxyClientSocket => {
 			const clientSocket = accept(true);
 

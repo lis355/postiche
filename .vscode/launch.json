@@ -5,8 +5,8 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "start",
-			"program": "${workspaceFolder}/start.js",
+			"name": "server/start",
+			"program": "${workspaceFolder}/src/serverStart.js",
 			"request": "launch",
 			"skipFiles": [
 				"<node_internals>/**"
@@ -14,8 +14,26 @@
 			"type": "node"
 		},
 		{
-			"name": "server",
-			"program": "${workspaceFolder}/server.js",
+			"name": "localProxy/start",
+			"program": "${workspaceFolder}/src/localProxyStart.js",
+			"request": "launch",
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+			"type": "node"
+		},
+		{
+			"name": "tests/start",
+			"program": "${workspaceFolder}/src/tests/testsStart.js",
+			"request": "launch",
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+			"type": "node"
+		},
+		{
+			"name": "scripts/recordTlsRequest",
+			"program": "${workspaceFolder}/src/scripts/recordTlsRequest.js",
 			"request": "launch",
 			"skipFiles": [
 				"<node_internals>/**"
