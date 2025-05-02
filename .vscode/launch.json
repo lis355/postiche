@@ -12,6 +12,15 @@
 				"<node_internals>/**"
 			],
 			"type": "node"
+		},
+		{
+			"name": "server",
+			"program": "${workspaceFolder}/server.js",
+			"request": "launch",
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+			"type": "node"
 		}
 	]
 }
