@@ -1,5 +1,5 @@
 import { buffer } from "node:stream/consumers";
-import https from "https";
+import https from "node:https";
 
 import { config as dotenv } from "dotenv-flow";
 import { SocksProxyAgent } from "socks-proxy-agent";

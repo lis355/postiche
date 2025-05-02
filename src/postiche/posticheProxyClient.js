@@ -1,5 +1,7 @@
 import net from "node:net";
 
+import config from "./posticheProxyConfig.js";
+
 const int16Buffer = Buffer.allocUnsafe(2);
 const int32Buffer = Buffer.allocUnsafe(4);
 
@@ -7,6 +9,9 @@ export async function createPosticheProxyClientSocket(serverHost, serverPort, de
 	const destinationSocket = net.createConnection({ host: serverHost, port: serverPort });
 
 	destinationSocket.cork();
+
+	// send fake tls first frame from captured https request (client hello)
+	destinationSocket.write(config.getTlsOutFrame(0));
 
 	// destinationHost length 4 bytes
 	const destinationHostBuffer = Buffer.from(destinationHost);
