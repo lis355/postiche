@@ -21,8 +21,8 @@ function createDebugPassThroghStream({ name }) {
 }
 
 function encryptBufferByEveryByteXorEncryption(buffer, salt = 0b10101010) {
-	const encryptedBuffer = Buffer.allocUnsafe(chunk.byteLength);
-	for (let i = 0; i < chunk.byteLength; i++) encryptedBuffer[i] = buffer[i] ^ salt;
+	const encryptedBuffer = Buffer.allocUnsafe(buffer.byteLength);
+	for (let i = 0; i < buffer.byteLength; i++) encryptedBuffer[i] = buffer[i] ^ salt;
 
 	return encryptedBuffer;
 }
