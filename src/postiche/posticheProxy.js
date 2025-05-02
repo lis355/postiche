@@ -21,16 +21,16 @@ function createDebugPassThroghStream({ name }) {
 }
 
 function encryptBufferByEveryByteXorEncryption(buffer, salt = 0b10101010) {
-	const encryptedBuffer = Buffer.allocUnsafe(buffer.byteLength);
-	for (let i = 0; i < buffer.byteLength; i++) encryptedBuffer[i] = buffer[i] ^ salt;
-
-	return encryptedBuffer;
+	for (let i = 0; i < buffer.byteLength; i++) buffer[i] ^= salt;
 }
 
 function createEveryByteXorEncryptionTransform() {
 	return new Transform({
 		transform(chunk, encoding, callback) {
-			callback(null, encryptBufferByEveryByteXorEncryption(chunk));
+			const encryptedBuffer = Buffer.copyBytesFrom(chunk);
+			encryptBufferByEveryByteXorEncryption(encryptedBuffer);
+
+			callback(null, encryptedBuffer);
 		}
 	});
 }
@@ -83,12 +83,15 @@ class PosticheProxyServer {
 
 	async readHeader(clientSocket) {
 		let buffer = await waitForStreamData(clientSocket, 4);
+		encryptBufferByEveryByteXorEncryption(buffer);
 		const destinationHostBufferLength = buffer.readInt32BE(0);
 
 		buffer = await waitForStreamData(clientSocket, destinationHostBufferLength);
+		encryptBufferByEveryByteXorEncryption(buffer);
 		const host = buffer.toString();
 
 		buffer = await waitForStreamData(clientSocket, 2);
+		encryptBufferByEveryByteXorEncryption(buffer);
 		const port = buffer.readInt16BE(0);
 
 		console.log(`PosticheProxyServer client ${clientSocket.remoteAddress}:${clientSocket.remotePort} want connect to ${host}:${port}`);
@@ -142,13 +145,16 @@ class PosticheProxyClientSocket {
 		const destinationHostBuffer = Buffer.from(destinationHost);
 		const destinationHostBufferLength = destinationHostBuffer.byteLength;
 		int32Buffer.writeInt32BE(destinationHostBufferLength, 0);
+		encryptBufferByEveryByteXorEncryption(int32Buffer);
 		this.destinationSocket.write(int32Buffer);
 
 		// destinationHost
+		encryptBufferByEveryByteXorEncryption(destinationHostBuffer);
 		this.destinationSocket.write(destinationHostBuffer);
 
 		// port 2 bytes
 		int16Buffer.writeInt16BE(destinationPort, 0);
+		encryptBufferByEveryByteXorEncryption(int16Buffer);
 		this.destinationSocket.write(int16Buffer);
 	}
 
