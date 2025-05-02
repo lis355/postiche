@@ -74,21 +74,25 @@ async function httpsGetRequest(localServerPort, url) {
 }
 
 (async () => {
-	const localSocksServerPort = Number(process.env.TEST_LOCAL_SOCK_PROXY_SERVER_PORT);
+	const localSocksServerPort = Number(process.env.LOCAL_SOCK_PROXY_SERVER_PORT);
 	const localSocksServer = createLocalSocksProxyServer(localSocksServerPort);
 
 	const url = process.env.RECORD_TLS_REQUEST_URL;
 	console.log("GET", url);
 
 	const responseBuffer = await httpsGetRequest(localSocksServerPort, url);
-	console.log("responseBuffer length", responseBuffer.toString().length, "Bytes");
+	const responseBufferString = responseBuffer.toString();
+	console.log("responseBuffer length", responseBufferString.length, "Bytes");
+	console.log("...");
+	console.log(responseBufferString.substring(0, 50));
+	console.log("...");
 
 	localSocksServer.close();
 
 	const config = {
 		localSocksServerPort,
-		posticheProxyServerHost: "",
-		posticheProxyServerPort: 0,
+		posticheProxyServerHost: process.env.REMOTE_POSTICHE_PROXY_SERVER_HOST,
+		posticheProxyServerPort: Number(process.env.REMOTE_POSTICHE_PROXY_SERVER_PORT),
 		url,
 		tlsFrames
 	};

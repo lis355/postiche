@@ -28,11 +28,11 @@ async function testHttpsGetRequest(localServerPort, url) {
 }
 
 (async () => {
-	const posticheServer = createPosticheProxyServer(Number(process.env.TEST_LOCAL_POSTICHE_PROXY_SERVER_PORT));
-	const localSocksProxyServer = createPosticheLocalSocksProxyServer(Number(process.env.TEST_LOCAL_SOCK_PROXY_SERVER_PORT), "localhost", Number(process.env.TEST_LOCAL_POSTICHE_PROXY_SERVER_PORT));
+	const posticheServer = createPosticheProxyServer(Number(process.env.LOCAL_POSTICHE_PROXY_SERVER_PORT));
+	const localSocksProxyServer = createPosticheLocalSocksProxyServer(Number(process.env.LOCAL_SOCK_PROXY_SERVER_PORT), "localhost", Number(process.env.LOCAL_POSTICHE_PROXY_SERVER_PORT));
 
 	// for test ip
-	const responseBuffer = await testHttpsGetRequest(Number(process.env.TEST_LOCAL_SOCK_PROXY_SERVER_PORT), "https://echo.free.beeceptor.com");
+	const responseBuffer = await testHttpsGetRequest(Number(process.env.LOCAL_SOCK_PROXY_SERVER_PORT), "https://echo.free.beeceptor.com");
 	console.log("IP", JSON.parse(responseBuffer).ip);
 
 	localSocksProxyServer.close();
