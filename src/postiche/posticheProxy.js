@@ -52,8 +52,7 @@ class PosticheProxyServer {
 
 			const { host, port } = await this.readHeader(clientSocket);
 
-			const destinationSocket = net.createConnection({ host, port });
-			destinationSocket.once("connect", () => {
+			const destinationSocket = net.createConnection({ host, port }, () => {
 				this.writeFakeTlsFrame(clientSocket);
 
 				clientSocket
@@ -119,15 +118,13 @@ const int32Buffer = Buffer.allocUnsafe(4);
 
 class PosticheProxyClientSocket {
 	constructor(serverHost, serverPort, destinationHost, destinationPort, onConnected) {
-		this.destinationSocket = net.createConnection({ host: serverHost, port: serverPort });
-
-		this.destinationSocket.cork();
-		this.writeFakeTlsFrame();
-		this.writeHeader(destinationHost, destinationPort);
-		this.destinationSocket.uncork();
-
-		this.destinationSocket.once("connect", async () => {
+		this.destinationSocket = net.createConnection({ host: serverHost, port: serverPort }, async () => {
 			console.log(`PosticheProxyClientSocket connected to server ${this.destinationSocket.remoteAddress}:${this.destinationSocket.remotePort}`);
+
+			this.destinationSocket.cork();
+			this.writeFakeTlsFrame();
+			this.writeHeader(destinationHost, destinationPort);
+			this.destinationSocket.uncork();
 
 			await this.readFakeTlsFrame();
 
@@ -209,6 +206,8 @@ export function createPosticheLocalHttpProxyServer(localHttpProxyPort, posticheP
 		const destinationUrl = request.url.split(":");
 		createPosticheProxyClientSocket(posticheProxyHost, posticheProxyPort, destinationUrl[0], Number(destinationUrl[1]), posticheProxyClientSocket => {
 			clientSocket.write(getHttpRawResponseString(request, 200), () => {
+				if (head.byteLength > 0) posticheProxyClientSocket.write(head);
+
 				clientSocket
 					// .pipe(createDebugPassThroghStream({ name: "CLIENT C -> S" }))
 					.pipe(createEveryByteXorEncryptionTransform())

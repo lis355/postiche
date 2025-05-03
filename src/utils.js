@@ -20,7 +20,7 @@ export function getHttpRawResponseString(request, statusCode) {
 
 export async function httpsGetRequest(url, agent) {
 	return new Promise((resolve, reject) => {
-		https.get(
+		const request = https.get(
 			url,
 			{
 				agent
@@ -28,10 +28,12 @@ export async function httpsGetRequest(url, agent) {
 			async response => {
 				const responseBuffer = await buffer(response);
 
-				console.log(response.statusCode, response.statusMessage);
+				console.log(response.statusCode, response.statusMessage, `[Body ${responseBuffer.byteLength} Bytes]`, "[..." + responseBuffer.subarray(0, 15).toString() + "...]");
 
 				return resolve(responseBuffer);
 			}
 		);
+
+		console.log(request.method, request.host, request.path, "[" + (agent ? `${agent.constructor.name} ${JSON.stringify(agent.proxy)}` : "none agent") + "]");
 	});
 }
