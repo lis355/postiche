@@ -45,6 +45,16 @@
 			"type": "node"
 		},
 		{
+			"name": "tests/testLocalSocks5ProxyNoAuthServer",
+			"program": "${workspaceFolder}/src/tests/testLocalSocks5ProxyNoAuthServer.js",
+			"request": "launch",
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+			"console": "integratedTerminal",
+			"type": "node"
+		},
+		{
 			"name": "scripts/generateConfig",
 			"program": "${workspaceFolder}/src/scripts/generateConfig.js",
 			"request": "launch",
